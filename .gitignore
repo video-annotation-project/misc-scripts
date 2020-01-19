@@ -1,3 +1,8 @@
+# initializing venv creates a pyvenv.cfg
+pyvenv.cfg
+# these files are too big to commit to GitHub
+csv/*
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
