@@ -14,8 +14,8 @@ To set up your python environment, run this in the top-level directory.
 
 
 To update the `requirements.txt` file, run this. Make sure your python environment is active.
+
 `pip freeze > requirements.txt`
 
 
-To deactivate your python environment, run this.
-`deactivate`
+To deactivate your python environment, run `deactivate`.
