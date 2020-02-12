@@ -1,7 +1,9 @@
 # initializing venv creates a pyvenv.cfg
 pyvenv.cfg
-# these files are too big to commit to GitHub
-csv/*
+# this directory is created if you use VSCode
+.vscode/
+# files in a csv/ folder are too big to commit to GitHub
+csv/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
