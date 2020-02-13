@@ -1,5 +1,3 @@
-# initializing venv creates a pyvenv.cfg
-pyvenv.cfg
 # this directory is created if you use VSCode
 .vscode/
 # files in a csv/ folder are too big to commit to GitHub
