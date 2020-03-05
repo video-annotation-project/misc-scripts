@@ -30,7 +30,24 @@ DB_HOST = os.getenv("DB_HOST")
 DB_USER = os.getenv("DB_USER")
 DB_PASSWORD = os.getenv("DB_PASSWORD")
 
-# Uploads images
+
+def getCapture(filename):
+    # grab video stream
+    url = s3.generate_presigned_url('get_object',
+                                    Params={'Bucket': S3_BUCKET,
+                                            'Key': S3_VIDEO_FOLDER + filename},
+                                    ExpiresIn=86400)
+    capture = cv2.VideoCapture(url)
+    return capture
+
+
+def getVideoFrame(capture, frame_num, videowidth, videoheight):
+    capture.set(1, frame_num)
+    check, frame = capture.read()
+    if (check is None or not check):
+        return None
+    frame = cv2.resize(frame, (videowidth, videoheight))
+    return frame
 
 
 def upload_image(frame, image):
@@ -42,52 +59,31 @@ def upload_image(frame, image):
     return
 
 
-def openVideo(filename):
-    # grab streaming url
-    url = s3.generate_presigned_url(
-        'get_object',
-        Params={
-            'Bucket': S3_BUCKET,
-            'Key': S3_VIDEO_FOLDER + filename
-        },
-        ExpiresIn=86400
-    )
-    cap = cv2.VideoCapture(url)
-    return cap
-
-
-def getFrame(cap, frame_num, videowidth, videoheight):
-    cap.set(1, round(frame_num))
-    check, frame = cap.read()
-    if (check is None or not check):
-        print("Error in cap.read()")
-        return
-    frame = cv2.resize(frame, (videowidth, videoheight))
-    return frame
-
-
 def getAllImages(filename, rows):
     print(f'Working on {filename}')
-    cap = openVideo(filename)
-    length = values.shape[0]
-    for index, row in rows.iterrows():
-        print(f'{filename} is at {round(index/length, 3)}%')
-        frame_num = row.frame_num
+    capture = getCapture(filename)
+    if capture is None:
+        print('Capture is broken')
+        return
+    length = rows.shape[0]
+    for index, (_, row) in enumerate(rows.iterrows()):
+        print(f'{filename} at {round(100*(index/length), 1)}%')
+        frame_num = row.framenum
         if (pd.isna(frame_num)):
-            frame_num = row.timeinvideo * 29.97002997002997
-        frame = getFrame(cap, round(frame_num), round(
+            frame_num = row.timeinvideo * 29.97002997003
+        frame = getVideoFrame(capture, round(frame_num), round(
             row.videowidth), round(row.videoheight))
         if (frame is None):
-            print(f'Failed on annotation: {row.id}')
+            print(f'Something went wrong with annotation: {row.id}')
+            print(row)
             continue
         upload_image(frame, row.image)
-    cap.release()
-    cv2.destroyAllWindows()
+    capture.release()
     return
 
 
 if __name__ == "__main__":
-    missingImages = pd.read_csv('missingImages420.csv')
+    missingImages = pd.read_csv(sys.argv[1])
     with Pool() as p:
         p.starmap(getAllImages, map(
             lambda x: x, missingImages.groupby('filename')))
