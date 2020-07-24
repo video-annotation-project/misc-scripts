@@ -14,7 +14,7 @@ import pandas as pd
 from multiprocessing import Pool
 
 # Load environment variables
-load_dotenv(dotenv_path="../video-annotation-tool/.env")
+load_dotenv(dotenv_path="../../video-annotation-tool/.env")
 AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
 AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
 S3_BUCKET = os.getenv('AWS_S3_BUCKET_NAME')
@@ -41,12 +41,11 @@ def getCapture(filename):
     return capture
 
 
-def getVideoFrame(capture, frame_num, videowidth, videoheight):
+def getVideoFrame(capture, frame_num):
     capture.set(1, frame_num)
-    check, frame = capture.read()
+    check, frame = capture.retrieve()
     if (check is None or not check):
         return None
-    frame = cv2.resize(frame, (videowidth, videoheight))
     return frame
 
 
@@ -71,8 +70,7 @@ def getAllImages(filename, rows):
         frame_num = row.framenum
         if (pd.isna(frame_num)):
             frame_num = row.timeinvideo * 29.97002997003
-        frame = getVideoFrame(capture, round(frame_num), round(
-            row.videowidth), round(row.videoheight))
+        frame = getVideoFrame(capture, round(frame_num))
         if (frame is None):
             print(f'Something went wrong with annotation: {row.id}')
             print(row)

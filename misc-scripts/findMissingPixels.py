@@ -16,7 +16,7 @@ DB_USER = os.getenv("DB_USER")
 DB_PASSWORD = os.getenv("DB_PASSWORD")
 A_KEY = os.getenv("AWS_ACCESS_KEY_ID")
 A_SEC = os.getenv("AWS_SECRET_ACCESS_KEY")
-print(A_KEY)
+
 # Connect to database using .env variables
 
 
@@ -47,12 +47,12 @@ with open(f'./csv/s3Images{current_time}.csv', 'a') as fd:
     for index, obj in enumerate(bucket.objects.filter(Delimiter='/', Prefix='annotation_frames/')):
         if index >= 1:
             # Make csv of images in s3 bucket
-            fd.write(obj.key + '\n')
-
+            if obj.size < 1000000:
+                fd.write(obj.key + '\n')
 
 annotation_rows = queryDB('''
     Select
-        DISTINCT ON (annotations.image) annotations.*, videos.filename
+        annotations.*, videos.filename
     FROM
         annotations
     LEFT JOIN
@@ -72,7 +72,7 @@ s3Images = s3Images[0]
 
 # # Remove images that exist in the s3 bucket
 
-annotation_rows_no_s3img = annotation_rows[~(
+annotation_rows_no_s3img = annotation_rows[(
     annotation_rows.image.isin(s3Images))]
 
 

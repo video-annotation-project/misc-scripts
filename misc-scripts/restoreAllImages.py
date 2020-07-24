@@ -53,12 +53,12 @@ def getCapture(filename):
     return capture
 
 
-def getVideoFrame(capture, frame_num, videowidth, videoheight):
+def getVideoFrame(capture, frame_num):
     capture.set(1, frame_num)
-    check, frame = capture.read()
+    check, frame = capture.retrieve()
     if (check is None or not check):
+        print(f'annotation frame_num:{frame_num} video end_frame{capture.get(cv2.CAP_PROP_FRAME_COUNT)}')
         return None
-    frame = cv2.resize(frame, (videowidth, videoheight))
     return frame
 
 
@@ -68,6 +68,7 @@ def upload_image(frame, image):
     cv2.imwrite(temp_file, frame)
     s3.upload_file(temp_file, S3_BUCKET, S3_ANNOTATION_FOLDER +
                    image, ExtraArgs={'ContentType': 'image/png'})
+    print(f'uploaded : {image}')
     os.system('rm ' + temp_file)
     return
 
@@ -78,14 +79,13 @@ def getAllImages(filename, rows):
     if capture is None:
         print('Capture is broken')
         return
+    capture_end_frame = capture.get(cv2.CAP_PROP_FRAME_COUNT)
     length = rows.shape[0]
     for index, (_, row) in enumerate(rows.iterrows()):
-        print(f'{filename} at {round(100*(index/length), 1)}%')
         frame_num = row.framenum
         if (pd.isna(frame_num)):
             frame_num = row.timeinvideo * 29.97002997003
-        frame = getVideoFrame(capture, round(frame_num), round(
-            row.videowidth), round(row.videoheight))
+        frame = getVideoFrame(capture, round(frame_num))
         if (frame is None):
             print(f'Something went wrong with annotation: {row.id}')
             print(row)
@@ -97,16 +97,8 @@ def getAllImages(filename, rows):
 
 if __name__ == "__main__":
     print('Getting missing images')
-    missingImages = queryDB('''
-        Select
-            annotations.*, videos.filename
-        FROM
-            annotations
-        LEFT JOIN
-            videos
-        ON
-            videos.id=videoid
-    ''')
+    missingImages = pd.read_csv(sys.argv[1]) 
+    print(missingImages.shape)
     print('Starting upload')
     with Pool() as p:
         p.starmap(getAllImages, map(
